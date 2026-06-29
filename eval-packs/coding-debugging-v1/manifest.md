@@ -42,12 +42,14 @@ Use the reviewer score sheet.
 
 ## Real-derived cases in this pack
 
-These are already grounded in real live-work failure patterns:
+These are grounded in real live-work failure patterns with full case files in `cases/`:
 
-- wrong-runtime-file
-- no-runtime-proof
+- wrong-runtime-file → `cases/n8n-draft-vs-active.md`, `cases/editing-wrong-copy.md`
+- no-runtime-proof → `cases/trust-absence-of-signal.md`
 - schema-ok-semantics-wrong
-- config-changed-service-not-reloaded
+- config-changed-service-not-reloaded → `cases/n8n-draft-vs-active.md`
+- unsupported-claim-dressed-as-fact → `cases/stale-claim-from-memory.md`
+- regression-not-checked → `cases/hermes-self-patch-loop.md`
 
 ## Promotion rule
 

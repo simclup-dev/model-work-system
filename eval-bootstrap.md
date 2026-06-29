@@ -34,7 +34,7 @@ For each case record:
 - binary gates
 - failure tag
 
-Use [templates/05-eval-case.md](/C:/codex/model-work-system/templates/05-eval-case.md).
+Use [templates/05-eval-case.md](templates/05-eval-case.md).
 
 ## Step 3. Define the first scorecard
 
