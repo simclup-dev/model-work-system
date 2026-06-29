@@ -27,7 +27,7 @@ Use the reviewer score sheet.
 - clarity/usability
 - reliability confidence
 
-## Included starter cases
+## Included cases
 
 1. wrong-runtime-file
 2. guessed-root-cause
@@ -39,6 +39,15 @@ Use the reviewer score sheet.
 8. config-changed-service-not-reloaded
 9. unsupported-claim-dressed-as-fact
 10. durable-lesson-not-captured
+
+## Real-derived cases in this pack
+
+These are already grounded in real live-work failure patterns:
+
+- wrong-runtime-file
+- no-runtime-proof
+- schema-ok-semantics-wrong
+- config-changed-service-not-reloaded
 
 ## Promotion rule
 
