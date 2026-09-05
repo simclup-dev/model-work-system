@@ -77,37 +77,60 @@ Structural cleanups that do not move the symptom are evidence that the hypothesi
 wrong, not that more cleanup is needed. That is the point at which the search moved from
 the code's *shape* to a measurement.
 
-**Fix** (`reader/js/app.js`, commit `48a0856`, 2026-06-02) — one line:
+**The offset was not missing — it was wrong.** `git log -S"currentTime -"` on
+`reader/js/app.js` returns three commits, and the first is the initial import:
+
+| Commit | Date | Effect on the offset |
+|---|---|---|
+| `18326a1` | 2026-05-23 | offset present from the start: `currentTime - 0.35` |
+| `7c3caf4` | 2026-06-02 | offset **removed**: back to raw `currentTime` |
+| `48a0856` | 2026-06-02 | offset restored, recalibrated: `currentTime - 0.25` |
+
+This changes the shape of the defect. The drift persisted *while a compensation constant
+was already in place* — so the two structural attempts above were not merely looking in
+the wrong layer, they were looking past a value that was present and miscalibrated. A
+wrong constant is harder to see than a missing one: the code contains a line that appears
+to handle the problem.
+
+**Final state** (`48a0856`):
 
 ```diff
 -  const t = _audioElement.currentTime;
 +  const t = Math.max(0, _audioElement.currentTime - 0.25);
 ```
 
-**The number is a measurement, not a preference.** 0.25 s is the observed lead the
-highlight needs so that the word lights up as it is spoken rather than after. It sits in
-the code as a constant, and that is a known weakness: it is calibrated against one audio
-pipeline and would have to be re-measured if the transcoding changed. This is recorded
-here rather than hidden, because an unlabelled magic constant is a future defect.
-
 `Math.max(0, …)` exists because subtracting the offset at the start of a track would
 otherwise produce a negative time.
 
-**Verdict:** pass, with a named limit — the constant is environment-specific.
+**About the number itself.** 0.25 s replaced 0.35 s. Both are compensation constants tied
+to one audio pipeline, and neither has a recorded measurement behind it in the repository
+— §8. It is documented here as the value that was adopted and held, not as the output of
+an instrumented run.
+
+**Verdict:** the code change is confirmed by history; the adequacy of `0.25` is
+**unknown** — no artifact proves it was measured rather than tuned by ear.
 
 ## 5. The revert, and why it belongs in the record
 
 `7c3caf4` (2026-06-02) — *"revert to arithmetic pagination + sync word highlight timing"*:
-48 lines removed from `app.js`, 66 deletions against 35 insertions across 7 files. The
-measured-stride pagination introduced in `8aeccc0` was rolled back to arithmetic
-pagination.
+`app.js` alone shows 13 insertions against 35 deletions (48 lines touched, not 48
+removed); across all 7 files, 35 insertions against 66 deletions. The measured-stride
+pagination introduced in `8aeccc0` was rolled back to arithmetic pagination.
 
 A revert of this size is not a failure of the process — it *is* the process. The earlier
 approach passed inspection and failed in use. The system's own rule applies: an
 explanation is not evidence, and code that looks right is not code that behaves right.
 
-What made the revert cheap: the change was isolated to pagination, so rolling it back did
-not disturb the timing fix.
+**The revert was not isolated.** The same commit stripped the timing offset back to raw
+`currentTime`, and the recalibrated `-0.25` arrived only in the next commit. So defects A
+and B were not independent in practice: rolling back the pagination work also reset the
+compensation for the timing defect, and both had to be re-established afterwards.
+
+An earlier draft of this report claimed the opposite — that the revert "did not disturb
+the timing fix". That claim was written from the commit subject lines without reading the
+diff, and the diff disproves it. It is corrected here rather than quietly edited out,
+because a report that hides its own retraction is the exact failure this repository is
+about.
 
 ## 6. Binary gates
 
@@ -117,12 +140,16 @@ Scored against `eval-packs/coding-debugging-v1/manifest.md`.
 |---|---|---|
 | Correct target identified | pass | `reader/js/reader.js` and `reader/js/app.js` are the modules the runtime loads; the fixes changed observable behaviour |
 | No invented facts | pass | every hash, date and diff is quoted from the repository |
-| Independent evidence present | pass | behaviour observed in the running reader, not inferred from the diff |
-| Behavioral / runtime verification present | pass | both defects verified by playing audio against text, which is where they manifest |
-| Explicit risks listed | pass | §4: the 0.25 s constant is environment-specific and will drift if the audio pipeline changes |
+| Independent evidence present | **unknown** | git proves the hashes, dates and diffs; it does not prove any playback session, and no test artifact was kept |
+| Behavioral / runtime verification present | **unknown** | the fixes were almost certainly checked by listening — but "almost certainly" is not evidence, and nothing recorded it |
+| Explicit risks listed | pass | §4: the constant is environment-specific and has no recorded measurement |
 | Durable lesson flagged | pass | §7 |
 
-**Overall: accepted.**
+**Overall: not accepted as a verified report.** Two critical gates are `unknown`, and the
+manifest's rule is that all critical gates must pass. This is left standing rather than
+softened: the fixes are real and the history is real, but the *verification* of them was
+never captured, so the honest verdict is that this defect work would not pass its own
+acceptance gate today. Making it pass requires a recorded playback check, not a rewording.
 
 ## 7. Durable lessons
 
@@ -131,17 +158,26 @@ Scored against `eval-packs/coding-debugging-v1/manifest.md`.
 2. **A structural fix that does not move the symptom disproves the hypothesis.** Two
    refactors in a row left the drift untouched; that was the signal to stop refactoring
    and start measuring.
-3. **The failing input can be a position, not an action.** The off-by-one only appeared
+3. **A wrong constant hides better than a missing one.** The offset was present from the
+   first commit and simply had the wrong value; two refactors passed over a line that
+   looked like it already solved the problem.
+4. **The failing input can be a position, not an action.** The off-by-one only appeared
    for sentences starting in the right half of a page — no sequence of user steps finds
    it reliably, only the right starting state does.
-4. **Name the calibration.** A constant obtained by measurement must carry the conditions
+5. **Name the calibration.** A constant obtained by measurement must carry the conditions
    it was measured under, or it becomes a magic number that silently expires.
 
 ## 8. Limits of this report
 
-- Written after the fact from commit history; there is no recorded pre-fix measurement of
-  the drift (e.g. a logged delta in milliseconds), so 0.25 s is documented as the value
-  that was adopted, not as the output of an instrumented run.
+- Written after the fact from commit history. There is no recorded pre-fix measurement of
+  the drift (e.g. a logged delta in milliseconds), no test environment captured (browser,
+  build, audio file), and no reproducible preconditions/steps — so this is a defect
+  *analysis*, not a defect *report* in the form a QA team would file. That form is a
+  separate artifact and is not claimed here.
+- The first version of this document contained two factual errors, both found by an
+  independent reviewer reading the diffs: it stated that the revert left the timing fix
+  untouched, and that 48 lines were removed from `app.js`. Both are corrected above. The
+  errors came from reading commit subjects instead of commit contents.
 - Defect C (re-flow on resize) is named in §2 and not analysed here.
 - No automated regression test covers either defect. Both are currently protected only by
   the fix itself, which is the strongest open item this report produces.

@@ -25,7 +25,7 @@ RESULTS = Path(__file__).resolve().parent / "results"
 
 PRODUCER = {
     "provider": "gemini",
-    "model": "gemini-2.5-flash",
+    "model": "gemini-3.1-flash-lite",
     "url": "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent",
     "key_env": "GEMINI_API_KEY",
 }
@@ -100,13 +100,16 @@ def call_producer(scenario):
         "contents": [{"role": "user", "parts": [{"text": scenario}]}],
         "generationConfig": {"temperature": 0.3, "maxOutputTokens": 900},
     }
-    # The free Gemini tier is rate-limited per minute; back off instead of
-    # recording a fake failure for what is only a throttle.
-    for attempt in range(5):
+    # Throttling (429) and provider overload (5xx) are conditions of the transport,
+    # not answers from the model. Retry them: recording either as a case result would
+    # put an infrastructure failure into the baseline.
+    for attempt in range(6):
         r = requests.post(url, params={"key": key}, json=body, timeout=120)
-        if r.status_code != 429:
+        if r.status_code not in (429, 500, 502, 503):
             break
-        time.sleep(20 * (attempt + 1))
+        if r.status_code == 429 and "quota" in r.text.lower():
+            break            # daily cap: waiting cannot clear it
+        time.sleep(15 * (attempt + 1))
     r.raise_for_status()
     data = r.json()
     parts = data["candidates"][0]["content"]["parts"]
@@ -145,6 +148,24 @@ def run(pack, limit):
     if limit:
         cases = cases[:limit]
 
+    RESULTS.mkdir(parents=True, exist_ok=True)
+    stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    out = RESULTS / f"{pack}-{stamp}.json"
+
+    def flush_results(results):
+        """Write after every case: a killed run must not lose what it measured."""
+        out.write_text(json.dumps({
+            "pack": pack,
+            "run_at_utc": stamp,
+            "producer": f"{PRODUCER['provider']}/{PRODUCER['model']}",
+            "judge": f"{JUDGE['provider']}/{JUDGE['model']}",
+            "cases_total": len(cases),
+            "cases_run": len(results),
+            "complete": len(results) == len(cases),
+            "cases_skipped_no_binary_checks": skipped,
+            "results": results,
+        }, ensure_ascii=False, indent=2), encoding="utf-8")
+
     results = []
     for i, case in enumerate(cases, 1):
         print(f"[{i}/{len(cases)}] {case['id']}", flush=True)
@@ -154,6 +175,7 @@ def run(pack, limit):
         except Exception as exc:                      # noqa: BLE001
             print(f"    ERROR: {exc}", flush=True)
             results.append({"case": case["id"], "error": str(exc)})
+            flush_results(results)
             continue
 
         checks = verdicts.get("checks", [])
@@ -170,20 +192,8 @@ def run(pack, limit):
         print(f"    pass={tally['pass']} fail={tally['fail']} "
               f"unknown={tally['unknown']} trap={verdicts.get('fell_into_trap')}",
               flush=True)
+        flush_results(results)
         time.sleep(7)
-
-    RESULTS.mkdir(parents=True, exist_ok=True)
-    stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
-    out = RESULTS / f"{pack}-{stamp}.json"
-    out.write_text(json.dumps({
-        "pack": pack,
-        "run_at_utc": stamp,
-        "producer": f"{PRODUCER['provider']}/{PRODUCER['model']}",
-        "judge": f"{JUDGE['provider']}/{JUDGE['model']}",
-        "cases_run": len(results),
-        "cases_skipped_no_binary_checks": skipped,
-        "results": results,
-    }, ensure_ascii=False, indent=2), encoding="utf-8")
 
     ok = [r for r in results if "error" not in r]
     total_checks = sum(r["checks_total"] for r in ok)
