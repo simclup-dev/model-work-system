@@ -1,5 +1,28 @@
 # Model Work System
 
+A working method for getting verified results out of AI models, and for knowing when
+you have not. I use it daily to run and check work I direct rather than type: I set the
+objective and the boundaries, the model produces, and nothing is accepted until an
+independent signal says it holds. The failure cases in `eval-packs/` are not
+hypotheticals — each one is a real incident from my own systems that this method now
+catches.
+
+**If you work in QA, the vocabulary maps directly:**
+
+| Here | Usual QA term |
+|---|---|
+| `Brief` | acceptance criteria |
+| `Verify` | test execution + evidence |
+| `Measure` | exit criteria / regression suite |
+| `Capture` | defect knowledge base |
+| eval case | test case with an expected result |
+| `failure tag` | defect category |
+| `unknown` verdict | not tested — never counted as a pass |
+
+Worth reading first: [`examples/bug-report-word-highlight-sync.md`](examples/bug-report-word-highlight-sync.md)
+— a defect analysis on a real product, including the part where the report's own
+acceptance gate fails, and [`checklists/definition-of-done.md`](checklists/definition-of-done.md).
+
 This is a practical operating system for high-volume work with AI models.
 
 Important operating rule:

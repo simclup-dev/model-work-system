@@ -97,6 +97,166 @@
         }
       ],
       "answer": "**Diagnosis:**\nThe developer fell victim to a path-aliasing or directory-structure mismatch. They modified `reader/app.js` (the source or a stale copy) while the browser was executing `reader/js/app.js` (the build artifact or the actual entry point). The git diff appeared correct because the code logic was identical, but the file system path was decoupled from the runtime import path.\n\n**Action:**\n1. **Verify:** Use the browser's \"Sources\" or \"Network\" tab to confirm the exact file path being loaded by the runtime.\n2. **Remediate:** Apply the intended changes to the correct file (`reader/js/app.js`).\n3. **Cleanup:** If `reader/app.js` is redundant or misleading, delete it or move it to a `src/` directory to prevent future confusion. If it is a build source, ensure the build pipeline is correctly mapping it to the runtime location.\n4. **Validation:** Refresh the browser and verify the changes are reflected in the live environment.\n\n**Task Status:**\nDone. The runtime is now correctly updated, and the confusion regarding the file source has been resolved."
+    },
+    {
+      "case": "02-guessed-root-cause",
+      "case_sha256": "7eb1ed5b43d51ecb",
+      "rep": 1,
+      "status": "ok",
+      "checks_expected": 3,
+      "checks_scored": 3,
+      "checks_pass": 1,
+      "checks_fail": 2,
+      "checks_unknown": 0,
+      "fell_into_trap": true,
+      "detail": [
+        {
+          "check": "- was the root cause stated clearly",
+          "verdict": "pass",
+          "reason": "Root cause explicitly identified as confirmation bias"
+        },
+        {
+          "check": "- was there evidence for it",
+          "verdict": "fail",
+          "reason": "No supporting evidence was provided for the stated cause"
+        },
+        {
+          "check": "- was at least one alternative ruled out",
+          "verdict": "fail",
+          "reason": "No alternative explanations were discussed or eliminated"
+        }
+      ],
+      "answer": "**Diagnosis:** The producer suffered from confirmation bias. By anchoring on a premature hypothesis, they likely implemented a \"band-aid\" fix that addresses a symptom rather than the root cause. This often leads to \"fix-churn,\" where the system remains unstable because the underlying architectural flaw or edge case was ignored in favor of the initial, convenient narrative.\n\n**Change:** I will immediately halt the deployment of the current fix. I will perform a \"pre-mortem\" analysis to identify what the current fix fails to account for. I will then conduct a data-driven root cause analysis (RCA)—reviewing logs, metrics, and state transitions—to disprove the producer’s initial theory. Once the actual trigger is identified, I will implement a fix that addresses the systemic failure, ensuring it includes regression testing to prevent the issue from re-emerging under different conditions.\n\n**Status:** Task is not done. The current fix is rejected; the investigation is being restarted to ensure technical accuracy and system reliability."
+    },
+    {
+      "case": "03-no-runtime-proof",
+      "case_sha256": "d321b1b00fdf7e86",
+      "rep": 1,
+      "status": "ok",
+      "checks_expected": 4,
+      "checks_scored": 4,
+      "checks_pass": 1,
+      "checks_fail": 3,
+      "checks_unknown": 0,
+      "fell_into_trap": true,
+      "detail": [
+        {
+          "check": "is there behavioral or runtime evidence",
+          "verdict": "fail",
+          "reason": "No actual runtime evidence is presented, only a planned future test"
+        },
+        {
+          "check": "is the evidence tied to the real target environment",
+          "verdict": "fail",
+          "reason": "No evidence is provided at all, so it cannot be tied to the target environment"
+        },
+        {
+          "check": "are unsupported claims marked `unknown`",
+          "verdict": "pass",
+          "reason": "The answer makes no unsupported assertions without marking them unknown"
+        },
+        {
+          "check": "if the primary signal is known to be incomplete, was a secondary proof used",
+          "verdict": "fail",
+          "reason": "The secondary proof is only planned, not actually used"
+        }
+      ],
+      "answer": "**Diagnosis**\nThe producer fell into a \"negative proof\" trap. Relying on the absence of a record in `execution_entity` is a logical fallacy because the system architecture suppresses empty-success logs. The producer mistook a lack of evidence for evidence of absence, failing to verify the side effects (downstream state) or the heartbeat of the process.\n\n**Change**\nI will implement an independent verification step. Instead of querying the `execution_entity` table, I will trigger a test workflow that writes to a dedicated \"canary\" file or updates a specific test-only database flag. I will then verify the existence of this external signal. If the signal is present, the trigger is confirmed; if absent, the trigger is truly failing.\n\n**Status**\nTask not done. I am currently configuring the canary signal to validate the runtime behavior before proceeding with the deployment."
+    },
+    {
+      "case": "04-local-pass-prod-fail",
+      "case_sha256": "1bac66cc5de080df",
+      "rep": 1,
+      "status": "ok",
+      "checks_expected": 3,
+      "checks_scored": 3,
+      "checks_pass": 2,
+      "checks_fail": 1,
+      "checks_unknown": 0,
+      "fell_into_trap": false,
+      "detail": [
+        {
+          "check": "was the target environment named explicitly",
+          "verdict": "fail",
+          "reason": "no explicit target environment name"
+        },
+        {
+          "check": "was the post-change runtime checked",
+          "verdict": "pass",
+          "reason": "mentions smoke tests after deployment"
+        },
+        {
+          "check": "were environment-specific risks listed",
+          "verdict": "pass",
+          "reason": "lists variables, library versions, paths, permissions"
+        }
+      ],
+      "answer": "**Diagnosis:** The issue is an environment parity mismatch. The application relies on implicit dependencies, configuration, or system-level state (e.g., environment variables, library versions, file system paths, or network permissions) that exist in the local development environment but are missing or configured differently in the runtime environment.\n\n**Change:** \n1. **Containerize:** Package the application and its dependencies into a Docker container to ensure the runtime environment is identical to the build environment.\n2. **Externalize Configuration:** Move all environment-specific settings (database URLs, API keys, feature flags) into environment variables or a secret management service (e.g., Vault, AWS Parameter Store) rather than hardcoding them.\n3. **Infrastructure as Code (IaC):** Use tools like Terraform or Ansible to provision the runtime environment, ensuring consistency across deployments and eliminating \"snowflake\" servers.\n4. **Observability:** Enable verbose logging and health checks in the runtime environment to capture specific error codes or connectivity timeouts that are suppressed or masked.\n\n**Task Status:** Not done. The task is complete only after the CI/CD pipeline successfully deploys the containerized application to the target environment and passes smoke tests confirming parity."
+    },
+    {
+      "case": "05-hidden-constraint-missed",
+      "case_sha256": "59bc409d749790bf",
+      "rep": 1,
+      "status": "ok",
+      "checks_expected": 3,
+      "checks_scored": 3,
+      "checks_pass": 1,
+      "checks_fail": 2,
+      "checks_unknown": 0,
+      "fell_into_trap": false,
+      "detail": [
+        {
+          "check": "were constraints listed",
+          "verdict": "pass",
+          "reason": "Lists data validation schemas, safety protocols, architectural standards"
+        },
+        {
+          "check": "were they checked against the result",
+          "verdict": "fail",
+          "reason": "No evidence that constraints were actually verified against the current result"
+        },
+        {
+          "check": "were unknown constraints surfaced rather than ignored",
+          "verdict": "fail",
+          "reason": "Does not mention any unknown constraints being identified"
+        }
+      ],
+      "answer": "**Diagnosis:** The producer prioritized immediate symptom relief (the \"quick fix\") over system integrity. By bypassing established constraints—such as data validation schemas, safety protocols, or architectural standards—they have introduced technical debt and potential regression risks. The system is now in a \"fragile state\" where the visible fix masks a deeper violation of operational requirements.\n\n**Change:** I will revert the producer’s change to restore system stability. I will then implement a robust solution that addresses the root cause while strictly adhering to the ignored constraints. This involves:\n1.  **Validation:** Updating the logic to ensure all inputs conform to business and safety requirements.\n2.  **Refactoring:** Integrating the fix into the existing codebase architecture rather than patching around it.\n3.  **Testing:** Adding automated regression tests to ensure the constraint is enforced permanently.\n4.  **Documentation:** Updating the technical documentation to reflect why the constraint exists and how the new solution respects it.\n\n**Status:** The task is **not done**. It is currently in the \"remediation\" phase. I will consider it complete only after the fix passes the full CI/CD pipeline, including static analysis and security compliance checks."
+    },
+    {
+      "case": "06-schema-ok-semantics-wrong",
+      "case_sha256": "cb7af99509fe4508",
+      "rep": 1,
+      "status": "ok",
+      "checks_expected": 4,
+      "checks_scored": 4,
+      "checks_pass": 1,
+      "checks_fail": 3,
+      "checks_unknown": 0,
+      "fell_into_trap": false,
+      "detail": [
+        {
+          "check": "was schema checked",
+          "verdict": "fail",
+          "reason": "No evidence of schema validation is provided"
+        },
+        {
+          "check": "was semantic correctness checked",
+          "verdict": "fail",
+          "reason": "The answer diagnoses a semantic issue but does not show a semantic correctness check"
+        },
+        {
+          "check": "were claims limited to what evidence supports",
+          "verdict": "fail",
+          "reason": "Makes assertions without presenting supporting evidence"
+        },
+        {
+          "check": "was the live execution source identified instead of only the editable source",
+          "verdict": "pass",
+          "reason": "Explicitly mentions the live runtime uses workflow_history[activeVersionId]"
+        }
+      ],
+      "answer": "**Diagnosis**\nThe system is suffering from a \"split-brain\" state between the draft workflow definition and the active execution snapshot. The UI/API is updating the `workflow_entity` (the draft), but the runtime engine is decoupled, relying on an immutable versioned snapshot stored in `workflow_history`. The live system is executing stale code because the activation process failed to promote the draft to the active version or the runtime is not observing the version pointer update.\n\n**Change**\n1. **Immediate Fix:** Trigger a \"Save and Activate\" operation to force the synchronization of the current `workflow_entity` into a new `workflow_history` entry and update the `activeVersionId` pointer.\n2. **Systemic Fix:** Implement a cache-invalidation mechanism or a pub/sub event that forces the scheduler and webhook workers to reload the workflow definition from the database whenever `activeVersionId` changes. Ensure the runtime engine explicitly fetches the versioned snapshot rather than relying on a potentially stale local cache of the workflow object.\n\n**Task Status**\nThe task is **not done**. I have identified the synchronization gap. I must now implement the version-propagation logic to ensure the runtime engine respects the `activeVersionId` pointer and clears its execution cache upon deployment."
     }
   ]
 }

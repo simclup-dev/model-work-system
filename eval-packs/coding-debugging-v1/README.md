@@ -24,8 +24,8 @@ It is trying to catch the most expensive early failure modes:
 
 ## Structure
 
-- [manifest.md](/C:/codex/model-work-system/eval-packs/coding-debugging-v1/manifest.md)
-- [reviewer-runbook.md](/C:/codex/model-work-system/eval-packs/coding-debugging-v1/reviewer-runbook.md)
+- [manifest.md](manifest.md)
+- [reviewer-runbook.md](reviewer-runbook.md)
 - `cases/` individual eval cases
 
 ## What is real already

@@ -18,8 +18,8 @@ Do not give the hidden producer process by default.
 
 Use:
 
-- [fresh-reviewer.md](/C:/codex/model-work-system/prompts/fresh-reviewer.md)
-- [reviewer-score-sheet.md](/C:/codex/model-work-system/reviewer-score-sheet.md)
+- [fresh-reviewer.md](../../prompts/fresh-reviewer.md)
+- [reviewer-score-sheet.md](../../reviewer-score-sheet.md)
 
 ## Review sequence
 

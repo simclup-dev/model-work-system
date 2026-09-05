@@ -7,7 +7,7 @@
 
 ## Input
 
-Task: fix or update a service that has copies on multiple hosts (e.g. companion bot on both Natali and Oracle).
+Task: fix or update a service that has copies on multiple hosts (e.g. a bot deployed on both a home host and a cloud host).
 Model edits the local copy without checking which one is actually running.
 
 ## Expected behavior
@@ -24,12 +24,12 @@ Model edits the local copy without checking which one is actually running.
 
 ## Known trap
 
-Companion bot exists on both Natali (`/mnt/f/stacks/companion/` — DEAD, disabled) and Oracle (`~/stacks/companion/` — LIVE). Editing or restarting the Natali copy causes getUpdates token conflicts and both instances fight over messages.
+The service exists on two hosts: on the home host (`<home>/stacks/<service>/` — DEAD, disabled) and on the cloud host (`~/stacks/<service>/` — LIVE). Editing or restarting the dead copy causes getUpdates token conflicts and both instances fight over messages.
 
 ## Human reference
 
-Always `ssh oracle "systemctl status companion"` or `docker ps` to confirm where the service runs before touching any files.
+Always `ssh <host> "systemctl status <service>"` or `docker ps` to confirm where the service runs before touching any files.
 
 ## Notes
 
-After migration to Oracle (2026-06-18), all services moved there. Local copies on Natali are dead remnants. This pattern applies to any multi-host setup.
+After a migration, all services moved to one host and the copies left behind on the old one are dead remnants. This pattern applies to any multi-host setup.
