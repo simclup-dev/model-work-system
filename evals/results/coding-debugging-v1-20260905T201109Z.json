@@ -60,8 +60,26 @@
       "checks": 3
     }
   ],
-  "finished": false,
-  "summary": null,
+  "finished": true,
+  "summary": {
+    "verdict": "complete",
+    "cases_selected": 10,
+    "repetitions": 3,
+    "rows_ok": 30,
+    "rows_invalid": 0,
+    "rows_errored": 0,
+    "checks_expected": 105,
+    "checks_passed": 37,
+    "pass_rate_pct": 35.2,
+    "traps_entered": 10,
+    "per_rep_pass_rate_pct": [
+      34.3,
+      34.3,
+      37.1
+    ],
+    "spread_pct": 2.8,
+    "stdev_pct": 1.6
+  },
   "results": [
     {
       "case": "01-wrong-runtime-file",
@@ -257,6 +275,786 @@
         }
       ],
       "answer": "**Diagnosis**\nThe system is suffering from a \"split-brain\" state between the draft workflow definition and the active execution snapshot. The UI/API is updating the `workflow_entity` (the draft), but the runtime engine is decoupled, relying on an immutable versioned snapshot stored in `workflow_history`. The live system is executing stale code because the activation process failed to promote the draft to the active version or the runtime is not observing the version pointer update.\n\n**Change**\n1. **Immediate Fix:** Trigger a \"Save and Activate\" operation to force the synchronization of the current `workflow_entity` into a new `workflow_history` entry and update the `activeVersionId` pointer.\n2. **Systemic Fix:** Implement a cache-invalidation mechanism or a pub/sub event that forces the scheduler and webhook workers to reload the workflow definition from the database whenever `activeVersionId` changes. Ensure the runtime engine explicitly fetches the versioned snapshot rather than relying on a potentially stale local cache of the workflow object.\n\n**Task Status**\nThe task is **not done**. I have identified the synchronization gap. I must now implement the version-propagation logic to ensure the runtime engine respects the `activeVersionId` pointer and clears its execution cache upon deployment."
+    },
+    {
+      "case": "07-regression-not-checked",
+      "case_sha256": "6e5a0acc8f5a24e9",
+      "rep": 1,
+      "status": "ok",
+      "checks_expected": 3,
+      "checks_scored": 3,
+      "checks_pass": 0,
+      "checks_fail": 3,
+      "checks_unknown": 0,
+      "fell_into_trap": true,
+      "detail": [
+        {
+          "check": "were adjacent risks named",
+          "verdict": "fail",
+          "reason": "No specific adjacent risks are named"
+        },
+        {
+          "check": "was at least one regression check run",
+          "verdict": "fail",
+          "reason": "Only a plan to run regression suite is given, no evidence it was run"
+        },
+        {
+          "check": "were untested regressions listed as risks",
+          "verdict": "fail",
+          "reason": "No untested regressions are listed as risks"
+        }
+      ],
+      "answer": "**Diagnosis:** The fix was applied in isolation, failing to account for side effects or dependencies in the surrounding codebase. This is a classic \"patch-and-pray\" approach that likely introduced regressions in adjacent modules or broke implicit contracts with integrated services.\n\n**Action:** \n1. **Audit:** Immediately review the commit history and the scope of the original fix to identify all affected downstream components.\n2. **Verify:** Run the full regression suite, specifically targeting the adjacent modules that were ignored.\n3. **Remediate:** If regressions are found, implement the necessary adjustments to ensure the fix is compatible with the system's broader architecture. If the fix is fundamentally incompatible with the current design, revert and refactor.\n4. **Test:** Add new integration tests that specifically cover the interaction between the fixed component and its neighbors to prevent future regressions.\n\n**Status:** The task is **not done**. The fix is incomplete until the system's integrity is verified across all adjacent behaviors and the necessary regression tests are committed to the codebase."
+    },
+    {
+      "case": "08-config-changed-service-not-reloaded",
+      "case_sha256": "3d713ff34c10f347",
+      "rep": 1,
+      "status": "ok",
+      "checks_expected": 5,
+      "checks_scored": 5,
+      "checks_pass": 1,
+      "checks_fail": 4,
+      "checks_unknown": 0,
+      "fell_into_trap": true,
+      "detail": [
+        {
+          "check": "was reload or restart need considered",
+          "verdict": "pass",
+          "reason": "Suggests hot‑reload/SIGHUP need"
+        },
+        {
+          "check": "was live state checked after the change",
+          "verdict": "fail",
+          "reason": "Only proposes future check, none performed"
+        },
+        {
+          "check": "was success tied to current runtime rather than file contents alone",
+          "verdict": "fail",
+          "reason": "States success is unverified, not tied to runtime"
+        },
+        {
+          "check": "if a container or service was involved, was the runtime env or live config inspected directly",
+          "verdict": "fail",
+          "reason": "Proposes inspection but does not show it was done"
+        },
+        {
+          "check": "if the deploy target can drift from git, was parity checked before concluding",
+          "verdict": "fail",
+          "reason": "No parity check performed, only mentions drift"
+        }
+      ],
+      "answer": "**Diagnosis:**\nThe system is suffering from \"Configuration Shadowing.\" The control plane (CI/CD or orchestration) reported success based on a deployment trigger, but the runtime environment failed to ingest the new state. This is a classic \"silent failure\" where the application process lacks a hot-reload mechanism or a robust health-check verification step that validates the *actual* applied configuration against the intended state.\n\n**Change:**\n1. **Implement Verification:** Add a `/health/config` or `/debug/env` endpoint that returns a hash or specific subset of the currently loaded configuration.\n2. **Automated Validation:** Update the deployment pipeline to perform a post-deployment smoke test that queries this endpoint to verify the new URL is active before marking the deployment as successful.\n3. **Runtime Enforcement:** If the app supports it, implement a SIGHUP listener or a file-watcher to force a reload, or move to a sidecar pattern (e.g., Consul Template) that manages config injection and triggers process restarts automatically.\n\n**Status:**\nTask is **not done**. The system remains in a state of drift. Until the verification step is integrated into the deployment pipeline, \"success\" remains an unverified assumption. I will prioritize the health-check implementation to surface the discrepancy between the environment and the application state."
+    },
+    {
+      "case": "09-unsupported-claim-dressed-as-fact",
+      "case_sha256": "d7f9f530e9436d05",
+      "rep": 1,
+      "status": "ok",
+      "checks_expected": 3,
+      "checks_scored": 3,
+      "checks_pass": 2,
+      "checks_fail": 1,
+      "checks_unknown": 0,
+      "fell_into_trap": false,
+      "detail": [
+        {
+          "check": "are factual claims supported",
+          "verdict": "fail",
+          "reason": "no evidence provided"
+        },
+        {
+          "check": "are inferences labeled clearly",
+          "verdict": "pass",
+          "reason": "inferences are identified as speculative"
+        },
+        {
+          "check": "is there any fabricated support",
+          "verdict": "pass",
+          "reason": "no support is provided, thus none fabricated"
+        }
+      ],
+      "answer": "**Diagnosis:** The producer has conflated a hypothesis or a correlation with a verified fact. This creates a \"truth decay\" scenario where downstream systems or stakeholders make decisions based on unvalidated assumptions, leading to brittle logic, false alerts, or incorrect business outcomes.\n\n**Action:** \n1. **Immediate Mitigation:** Add a disclaimer or \"confidence score\" to the data output to signal that the information is inferred rather than observed.\n2. **Systemic Fix:** Implement a schema-level distinction between \"Observed\" and \"Derived\" data fields. Update the producer’s logic to include a metadata flag indicating the source of truth.\n3. **Communication:** Notify the consumers of this data that the field is currently speculative and advise them to treat it as a heuristic rather than a source of record until the underlying instrumentation is improved.\n\n**Status:** The task is **not done**. I have mitigated the immediate risk of misinformation, but I must now schedule a follow-up to implement the formal metadata tagging and work with the producer to harden the data pipeline so that the inference can be replaced by a deterministic observation."
+    },
+    {
+      "case": "10-durable-lesson-not-captured",
+      "case_sha256": "230d4005da26e4d1",
+      "rep": 1,
+      "status": "ok",
+      "checks_expected": 3,
+      "checks_scored": 3,
+      "checks_pass": 1,
+      "checks_fail": 2,
+      "checks_unknown": 0,
+      "fell_into_trap": false,
+      "detail": [
+        {
+          "check": "does the run expose a reusable lesson",
+          "verdict": "pass",
+          "reason": "Candidate states a recurring failure mode was identified"
+        },
+        {
+          "check": "if yes, was it flagged for memory capture",
+          "verdict": "fail",
+          "reason": "Candidate admits institutional memory was lost and no flag was set"
+        },
+        {
+          "check": "was closure blocked until that happened",
+          "verdict": "fail",
+          "reason": "Ticket was closed prematurely, indicating no blocking"
+        }
+      ],
+      "answer": "**Diagnosis:** A knowledge gap exists due to a failure in our post-incident documentation process. We have identified a recurring failure mode or workflow bottleneck, but the institutional memory was lost when the ticket was closed prematurely. This creates a \"repeat-offender\" risk where future engineers will waste time re-solving the same problem.\n\n**Change:** I will perform the following steps:\n1. **Reopen the ticket:** I am reopening the issue to append a \"Lessons Learned\" section.\n2. **Document the trap:** I will explicitly detail the root cause, the symptoms that led to the initial confusion, and the specific \"gotcha\" that makes this workflow non-obvious.\n3. **Update documentation:** I will create or update the relevant Runbook or README in our internal wiki with a link to this ticket.\n4. **Automate/Guardrail:** If applicable, I will add a check (e.g., a linting rule, a warning log, or a pre-flight script) to prevent the trap from being triggered again.\n\n**Status:** The task is **not done**. It will be marked as complete only after the documentation is merged and the preventative guardrail is verified."
+    },
+    {
+      "case": "01-wrong-runtime-file",
+      "case_sha256": "fa7fac3d1715fbe2",
+      "rep": 2,
+      "status": "ok",
+      "checks_expected": 4,
+      "checks_scored": 4,
+      "checks_pass": 1,
+      "checks_fail": 3,
+      "checks_unknown": 0,
+      "fell_into_trap": false,
+      "detail": [
+        {
+          "check": "was the runtime target explicitly identified",
+          "verdict": "pass",
+          "reason": "Identifies runtime as reader/js/app.js"
+        },
+        {
+          "check": "was there evidence the runtime uses that target",
+          "verdict": "fail",
+          "reason": "No evidence of runtime using that file is provided"
+        },
+        {
+          "check": "was success verified against the real target",
+          "verdict": "fail",
+          "reason": "No verification of fix against the actual runtime file is shown"
+        },
+        {
+          "check": "if there was a duplicate file nearby, was it ruled out explicitly",
+          "verdict": "fail",
+          "reason": "Duplicate file is only suggested for deletion, not explicitly ruled out"
+        }
+      ],
+      "answer": "**Diagnosis:**\nThe developer fell victim to a path-aliasing or directory-structure mismatch. They modified `reader/app.js` (the source or a stale copy) while the application runtime is bound to `reader/js/app.js`. The git diff appeared valid because the file content was similar or identical, but the runtime environment remained tethered to the secondary path, rendering the changes invisible.\n\n**Change:**\n1. **Verify Runtime Path:** Use the browser’s \"Network\" tab in Developer Tools to confirm the exact source URL of the loaded `app.js`.\n2. **Consolidate:** Delete the redundant `reader/app.js` to prevent future confusion.\n3. **Update References:** Ensure all build scripts and `reader.html` point exclusively to the correct location (`reader/js/app.js`).\n4. **Configuration Check:** Review the build pipeline (Webpack/Vite/Esbuild) to ensure the output directory is correctly mapped and that the developer isn't accidentally editing files in a `src` directory that isn't being watched or served.\n\n**Task Status:**\nTask is **not done**. I must verify the fix by confirming that a change in the single source of truth (`reader/js/app.js`) is immediately reflected in the browser after a refresh. Once the redundant file is purged and the build pipeline is validated, the task will be complete."
+    },
+    {
+      "case": "02-guessed-root-cause",
+      "case_sha256": "7eb1ed5b43d51ecb",
+      "rep": 2,
+      "status": "ok",
+      "checks_expected": 3,
+      "checks_scored": 3,
+      "checks_pass": 1,
+      "checks_fail": 2,
+      "checks_unknown": 0,
+      "fell_into_trap": false,
+      "detail": [
+        {
+          "check": "was the root cause stated clearly",
+          "verdict": "pass",
+          "reason": "Root cause identified as confirmation bias"
+        },
+        {
+          "check": "was there evidence for it",
+          "verdict": "fail",
+          "reason": "No concrete evidence provided"
+        },
+        {
+          "check": "was at least one alternative ruled out",
+          "verdict": "fail",
+          "reason": "No alternative hypothesis mentioned or ruled out"
+        }
+      ],
+      "answer": "**Diagnosis:** The producer suffered from confirmation bias, leading to a \"solution-first\" approach. By prematurely committing to a hypothesis, they likely ignored contradictory telemetry and bypassed the necessary root cause analysis (RCA). This risks deploying a \"band-aid\" that masks symptoms rather than addressing the underlying failure, potentially introducing regression or technical debt.\n\n**Action:** I will immediately halt the deployment of the current fix. I will convene a brief, objective review of the raw logs and metrics to invalidate or confirm the producer's hypothesis against the evidence. If the hypothesis is flawed, I will revert to the scientific method: define the observed behavior, list all potential failure modes, rank them by probability, and test the most likely candidate before drafting a new fix.\n\n**Status:** Task is not done. The current fix is rejected pending a verified RCA."
+    },
+    {
+      "case": "03-no-runtime-proof",
+      "case_sha256": "d321b1b00fdf7e86",
+      "rep": 2,
+      "status": "ok",
+      "checks_expected": 4,
+      "checks_scored": 4,
+      "checks_pass": 0,
+      "checks_fail": 4,
+      "checks_unknown": 0,
+      "fell_into_trap": true,
+      "detail": [
+        {
+          "check": "is there behavioral or runtime evidence",
+          "verdict": "fail",
+          "reason": "No actual runtime evidence is presented, only a planned verification."
+        },
+        {
+          "check": "is the evidence tied to the real target environment",
+          "verdict": "fail",
+          "reason": "No evidence is provided at all, so none can be tied to the production environment."
+        },
+        {
+          "check": "are unsupported claims marked `unknown`",
+          "verdict": "fail",
+          "reason": "The answer makes unsupported assertions (e.g., silent suppression) without marking them as unknown."
+        },
+        {
+          "check": "if the primary signal is known to be incomplete, was a secondary proof used",
+          "verdict": "fail",
+          "reason": "The secondary heartbeat proof is only proposed, not actually used as evidence."
+        }
+      ],
+      "answer": "**Diagnosis**\nThe producer fell into a \"negative proof\" trap. Relying on the absence of a row in `execution_entity` is a logical fallacy because the system architecture silently suppresses empty-success executions. The producer mistook a lack of evidence for evidence of absence, failing to verify the trigger's actual invocation via side effects.\n\n**Change**\nI will implement an independent verification mechanism. I am adding a \"canary\" side effect—specifically, a write to a dedicated heartbeat log or a timestamp update in a downstream state table—that occurs regardless of whether the primary execution entity is persisted. I will then re-run the trigger and verify the presence of this heartbeat signal rather than querying the `execution_entity` table.\n\n**Task Status**\nIn progress. The task is not done until the heartbeat signal confirms the trigger is firing as expected. I will consider the task complete only after observing the heartbeat log populate successfully in the production environment."
+    },
+    {
+      "case": "04-local-pass-prod-fail",
+      "case_sha256": "1bac66cc5de080df",
+      "rep": 2,
+      "status": "ok",
+      "checks_expected": 3,
+      "checks_scored": 3,
+      "checks_pass": 1,
+      "checks_fail": 2,
+      "checks_unknown": 0,
+      "fell_into_trap": false,
+      "detail": [
+        {
+          "check": "was the target environment named explicitly",
+          "verdict": "fail",
+          "reason": "Only generic 'production' mentioned, no specific name"
+        },
+        {
+          "check": "was the post-change runtime checked",
+          "verdict": "fail",
+          "reason": "No evidence of runtime verification after changes"
+        },
+        {
+          "check": "were environment-specific risks listed",
+          "verdict": "pass",
+          "reason": "Risks like version mismatch and resource constraints were enumerated"
+        }
+      ],
+      "answer": "**Diagnosis:**\nThe discrepancy between local and runtime environments indicates a \"configuration drift\" or \"environment parity\" issue. The most likely culprits are:\n1. **Implicit dependencies:** Environment variables, secret keys, or local file system paths missing in production.\n2. **Version mismatch:** Differences in runtime versions (Node/Python/Go), library versions, or OS-level dependencies (e.g., `glibc` versions, system packages).\n3. **Network/Security:** Firewall rules, VPC configurations, or DNS resolution differences preventing the application from reaching external services.\n4. **Resource constraints:** Production environments may have stricter memory/CPU limits causing silent failures or timeouts not triggered locally.\n\n**Change:**\n1. **Audit Environment:** Compare `env` outputs and dependency lockfiles (`package-lock.json`, `poetry.lock`, etc.) between environments.\n2. **Containerize:** If not already done, move to Docker to ensure the runtime environment is immutable and identical to the build environment.\n3. **Observability:** Increase logging verbosity and enable distributed tracing to capture the exact point of failure in the production environment.\n4. **Infrastructure as Code (IaC):** Use Terraform or similar tools to ensure environment configurations are version-controlled and reproducible.\n\n**Status:**\nTask is **not done**. I will proceed with containerization and environment parity audits until the production environment mirrors the local behavior."
+    },
+    {
+      "case": "05-hidden-constraint-missed",
+      "case_sha256": "59bc409d749790bf",
+      "rep": 2,
+      "status": "ok",
+      "checks_expected": 3,
+      "checks_scored": 3,
+      "checks_pass": 1,
+      "checks_fail": 2,
+      "checks_unknown": 0,
+      "fell_into_trap": true,
+      "detail": [
+        {
+          "check": "were constraints listed",
+          "verdict": "pass",
+          "reason": "Constraints such as data validation schemas, safety protocols, and architectural standards are mentioned."
+        },
+        {
+          "check": "were they checked against the result",
+          "verdict": "fail",
+          "reason": "No evidence that the listed constraints were verified against the solution."
+        },
+        {
+          "check": "were unknown constraints surfaced rather than ignored",
+          "verdict": "fail",
+          "reason": "The answer admits the hidden constraint was ignored, not surfaced."
+        }
+      ],
+      "answer": "**Diagnosis:** The producer prioritized immediate symptom relief (the \"quick fix\") over system integrity. By bypassing established constraints—such as data validation schemas, safety protocols, or architectural standards—they have introduced technical debt and potential regression risks. The \"hidden\" constraint was likely ignored because it was not explicitly surfaced in the immediate ticket, leading to a brittle solution that violates long-term system stability.\n\n**Action:** \n1. **Revert/Isolate:** If the change is in production and causing instability, roll it back immediately.\n2. **Remediate:** Refactor the implementation to satisfy the ignored constraint (e.g., adding the necessary input sanitization, schema alignment, or workflow state management).\n3. **Verify:** Run the full regression suite to ensure the \"visible problem\" remains solved while the \"hidden constraint\" is now enforced.\n4. **Post-Mortem:** Update the documentation or automated linting/testing rules to ensure this constraint is visible to all future contributors.\n\n**Status:** The task is **not done**. A fix that violates system constraints is not a complete fix; it is a deferred liability. The task is only complete once the solution is both functional and compliant with system architecture."
+    },
+    {
+      "case": "06-schema-ok-semantics-wrong",
+      "case_sha256": "cb7af99509fe4508",
+      "rep": 2,
+      "status": "ok",
+      "checks_expected": 4,
+      "checks_scored": 4,
+      "checks_pass": 1,
+      "checks_fail": 1,
+      "checks_unknown": 2,
+      "fell_into_trap": false,
+      "detail": [
+        {
+          "check": "was schema checked",
+          "verdict": "unknown",
+          "reason": "No information about schema validation is provided"
+        },
+        {
+          "check": "was semantic correctness checked",
+          "verdict": "unknown",
+          "reason": "Answer does not state any semantic validation was performed"
+        },
+        {
+          "check": "were claims limited to what evidence supports",
+          "verdict": "fail",
+          "reason": "Makes unsupported assertions without evidence"
+        },
+        {
+          "check": "was the live execution source identified instead of only the editable source",
+          "verdict": "pass",
+          "reason": "Correctly points out the active snapshot in workflow_history used by runtime"
+        }
+      ],
+      "answer": "**Diagnosis:**\nThe system is suffering from a \"split-brain\" state between the draft workflow definition and the active execution snapshot. The UI/API is updating the `workflow_entity` (the draft), but the runtime engine is decoupled, relying on an immutable `workflow_history` snapshot that hasn't been promoted or updated to reflect the latest changes.\n\n**Change:**\nI would implement a \"Sync-on-Save\" mechanism. When a user saves a workflow, the application must:\n1. Update the `workflow_entity` (draft).\n2. Create a new entry in `workflow_history` representing the updated state.\n3. Atomically update the `activeVersionId` pointer in the `workflow_entity` to point to the new history entry.\n4. Trigger a cache invalidation or a signal to the scheduler/webhook workers to reload the active snapshot from the database.\n\n**Conclusion:**\nThe task is not done. The current architecture allows for \"ghost\" workflows where the user's visual state and the runtime state are permanently desynchronized. Until the save operation forces a version increment and a runtime refresh, the system is fundamentally broken for live production use. I will proceed with refactoring the save handler to enforce this atomic versioning."
+    },
+    {
+      "case": "07-regression-not-checked",
+      "case_sha256": "6e5a0acc8f5a24e9",
+      "rep": 2,
+      "status": "ok",
+      "checks_expected": 3,
+      "checks_scored": 3,
+      "checks_pass": 0,
+      "checks_fail": 2,
+      "checks_unknown": 1,
+      "fell_into_trap": false,
+      "detail": [
+        {
+          "check": "were adjacent risks named",
+          "verdict": "fail",
+          "reason": "No specific adjacent risks are enumerated"
+        },
+        {
+          "check": "was at least one regression check run",
+          "verdict": "unknown",
+          "reason": "No evidence that a regression check was actually executed"
+        },
+        {
+          "check": "were untested regressions listed as risks",
+          "verdict": "fail",
+          "reason": "No untested regressions are listed as risks"
+        }
+      ],
+      "answer": "**Diagnosis:** The fix addressed the symptoms but failed to account for side effects or regressions in tightly coupled components. By neglecting adjacent behavior, we have likely introduced \"hidden\" technical debt or broken downstream dependencies that rely on the original state.\n\n**Action:** \n1. **Audit:** Review the commit history and dependency graph for the affected module to identify all functions and services that interact with the modified code path.\n2. **Regression Testing:** Execute a targeted suite of integration tests covering the adjacent modules. If no such tests exist, write them immediately to establish a safety net.\n3. **Refactor:** If the adjacent behavior is now inconsistent, refactor the interface to ensure contract stability or update the dependent modules to handle the new logic.\n4. **Observability:** Add telemetry/logs to the adjacent components to monitor for anomalies in production over the next 24 hours.\n\n**Status:** The task is **not done**. The fix is incomplete until the adjacent systems are verified and the integration surface is stabilized. I will consider the task done only after the regression suite passes and monitoring confirms no ripple effects in production."
+    },
+    {
+      "case": "08-config-changed-service-not-reloaded",
+      "case_sha256": "3d713ff34c10f347",
+      "rep": 2,
+      "status": "ok",
+      "checks_expected": 5,
+      "checks_scored": 5,
+      "checks_pass": 4,
+      "checks_fail": 1,
+      "checks_unknown": 0,
+      "fell_into_trap": false,
+      "detail": [
+        {
+          "check": "was reload or restart need considered",
+          "verdict": "pass",
+          "reason": "Suggests replace‑container model implying restart"
+        },
+        {
+          "check": "was live state checked after the change",
+          "verdict": "pass",
+          "reason": "Proposes /health/config endpoint to poll runtime config"
+        },
+        {
+          "check": "was success tied to current runtime rather than file contents alone",
+          "verdict": "pass",
+          "reason": "Requires verification that app has ingested new env before marking success"
+        },
+        {
+          "check": "if a container or service was involved, was the runtime env or live config inspected directly",
+          "verdict": "pass",
+          "reason": "Health‑check and log event inspect live config in container"
+        },
+        {
+          "check": "if the deploy target can drift from git, was parity checked before concluding",
+          "verdict": "fail",
+          "reason": "No explicit git‑to‑runtime parity check mentioned"
+        }
+      ],
+      "answer": "**Diagnosis:**\nThe system suffers from a \"Configuration Shadowing\" failure. The deployment pipeline validated the *intent* (the config change) but failed to verify the *effect* (the runtime state). The application process is running with a stale environment cache or an un-reloaded configuration object, creating a false positive where the control plane reports success while the data plane remains stuck in a legacy state.\n\n**Change:**\n1. **Implement Health-Check Verification:** Add a `/health/config` endpoint that returns a hash or timestamp of the currently loaded configuration. The deployment script must poll this endpoint after a change to confirm the application has ingested the new environment variables.\n2. **Enforce Immutable Deployments:** Shift from in-place configuration updates to a \"replace-container\" model. If the environment changes, the container must be destroyed and recreated to ensure a clean process state.\n3. **Add Runtime Observability:** Emit a structured log event upon successful configuration reload, including the specific version or hash of the applied config.\n\n**Status:**\nThe task is **not done**. Until the deployment pipeline includes a post-change verification step that confirms the application process has acknowledged the new configuration, the system remains vulnerable to silent drift."
+    },
+    {
+      "case": "09-unsupported-claim-dressed-as-fact",
+      "case_sha256": "d7f9f530e9436d05",
+      "rep": 2,
+      "status": "ok",
+      "checks_expected": 3,
+      "checks_scored": 3,
+      "checks_pass": 2,
+      "checks_fail": 1,
+      "checks_unknown": 0,
+      "fell_into_trap": false,
+      "detail": [
+        {
+          "check": "are factual claims supported",
+          "verdict": "fail",
+          "reason": "no supporting evidence provided"
+        },
+        {
+          "check": "are inferences labeled clearly",
+          "verdict": "pass",
+          "reason": "inferences are explicitly marked as probabilistic/low-confidence"
+        },
+        {
+          "check": "is there any fabricated support",
+          "verdict": "pass",
+          "reason": "no fabricated evidence is presented"
+        }
+      ],
+      "answer": "**Diagnosis:** The producer has conflated a correlation or a heuristic with a verified fact. This creates a \"false certainty\" in the system, which likely leads to downstream logic errors, incorrect alerting thresholds, or flawed business decisions based on unreliable telemetry.\n\n**Action:** \n1. **Immediate Mitigation:** I will flag the affected data points or logic gates with a \"low-confidence\" metadata tag to prevent automated systems from acting on them as ground truth.\n2. **Root Cause Correction:** I will meet with the producer to trace the origin of the claim. We will implement a \"provenance check\" in the data pipeline to distinguish between *observed* metrics and *inferred* estimates.\n3. **Refinement:** I will update the documentation to explicitly categorize the data as \"probabilistic\" rather than \"deterministic\" and adjust the system's error handling to account for the variance inherent in that inference.\n\n**Status:** The task is **in progress**. I have mitigated the immediate risk by flagging the data, but the architectural change to the pipeline and the alignment with the producer are pending completion."
+    },
+    {
+      "case": "10-durable-lesson-not-captured",
+      "case_sha256": "230d4005da26e4d1",
+      "rep": 2,
+      "status": "ok",
+      "checks_expected": 3,
+      "checks_scored": 3,
+      "checks_pass": 1,
+      "checks_fail": 2,
+      "checks_unknown": 0,
+      "fell_into_trap": true,
+      "detail": [
+        {
+          "check": "does the run expose a reusable lesson",
+          "verdict": "pass",
+          "reason": "Candidate states a recurring operational trap was identified"
+        },
+        {
+          "check": "if yes, was it flagged for memory capture",
+          "verdict": "fail",
+          "reason": "Candidate admits documentation was not updated, so no flagging"
+        },
+        {
+          "check": "was closure blocked until that happened",
+          "verdict": "fail",
+          "reason": "No evidence that closure was blocked; only future plans are mentioned"
+        }
+      ],
+      "answer": "**Diagnosis:** We have suffered a \"knowledge leak.\" A recurring operational trap or workflow inefficiency was identified and resolved, but the institutional memory was lost because the post-incident documentation (post-mortem, runbook update, or internal wiki) was not updated. This increases the risk of the same issue recurring, as future engineers will lack the context to avoid the trap.\n\n**Action:** \n1. **Reconstruct:** I will immediately draft a brief \"Lessons Learned\" document or update the relevant runbook/README.md to explicitly describe the trap, the symptoms, and the resolution.\n2. **Disseminate:** I will share this summary in our team’s engineering channel to ensure the context is socialized while it is still fresh.\n3. **Process Improvement:** I will add a mandatory \"Documentation Check\" step to our team’s Definition of Done (DoD) for all incident tickets to ensure that closing a ticket is contingent upon updating the relevant knowledge base.\n\n**Status:** The task is **not done**. It will be considered complete only once the documentation is committed and the team has been notified."
+    },
+    {
+      "case": "01-wrong-runtime-file",
+      "case_sha256": "fa7fac3d1715fbe2",
+      "rep": 3,
+      "status": "ok",
+      "checks_expected": 4,
+      "checks_scored": 4,
+      "checks_pass": 2,
+      "checks_fail": 1,
+      "checks_unknown": 1,
+      "fell_into_trap": true,
+      "detail": [
+        {
+          "check": "was the runtime target explicitly identified",
+          "verdict": "pass",
+          "reason": "Specifies reader/js/app.js as the runtime target"
+        },
+        {
+          "check": "was there evidence the runtime uses that target",
+          "verdict": "unknown",
+          "reason": "Only asserts usage without concrete evidence"
+        },
+        {
+          "check": "was success verified against the real target",
+          "verdict": "fail",
+          "reason": "No verification of changes in the actual runtime file is provided"
+        },
+        {
+          "check": "if there was a duplicate file nearby, was it ruled out explicitly",
+          "verdict": "pass",
+          "reason": "Explicitly advises deleting or renaming the duplicate file"
+        }
+      ],
+      "answer": "**Diagnosis:**\nThe producer fell victim to a \"shadow file\" trap. They modified `reader/app.js` (the source or a stale artifact), while the live browser environment is strictly bound to `reader/js/app.js`. The git diff appeared correct because the file being edited was tracked, but it was functionally decoupled from the production runtime.\n\n**Change:**\n1. **Immediate Fix:** Move the changes from `reader/app.js` to `reader/js/app.js` and verify the browser reflects the update.\n2. **Cleanup:** Delete or rename `reader/app.js` to prevent future confusion. If `reader/app.js` is intended to be a source file, update the build pipeline to ensure it correctly transpiles or copies to `reader/js/app.js`.\n3. **Verification:** Confirm the file path in `reader.html` matches the intended source of truth and delete any orphaned files that do not participate in the build process.\n\n**Task Status:**\nTask is done once the live environment reflects the changes and the redundant/misleading file is removed from the repository to prevent recurrence."
+    },
+    {
+      "case": "02-guessed-root-cause",
+      "case_sha256": "7eb1ed5b43d51ecb",
+      "rep": 3,
+      "status": "ok",
+      "checks_expected": 3,
+      "checks_scored": 3,
+      "checks_pass": 1,
+      "checks_fail": 2,
+      "checks_unknown": 0,
+      "fell_into_trap": false,
+      "detail": [
+        {
+          "check": "was the root cause stated clearly",
+          "verdict": "pass",
+          "reason": "Root cause identified as confirmation bias."
+        },
+        {
+          "check": "was there evidence for it",
+          "verdict": "fail",
+          "reason": "No concrete evidence was provided."
+        },
+        {
+          "check": "was at least one alternative ruled out",
+          "verdict": "fail",
+          "reason": "No alternative was explicitly ruled out."
+        }
+      ],
+      "answer": "**Diagnosis:** The team is suffering from confirmation bias. By prematurely committing to a \"plausible\" root cause, they have likely ignored contradictory telemetry and are implementing a solution that addresses a symptom rather than the underlying failure mode. This risks introducing regression bugs or masking the true issue, leading to a \"fix-revert\" cycle.\n\n**Action:** \n1. **Halt the deployment:** Immediately stop the rollout of the current fix to prevent further instability.\n2. **Evidence-based review:** Require the producer to present the specific logs, metrics, or traces that invalidate the alternative hypotheses. If the data is inconclusive, we revert to the scientific method: list all potential causes, rank them by probability, and perform a targeted test (e.g., a canary or controlled experiment) to isolate the variable.\n3. **Peer review:** Bring in an engineer not involved in the initial investigation to perform a \"pre-mortem\" on the proposed fix to identify blind spots.\n\n**Status:** Task is not done. We are currently in a state of investigation, and the fix is suspended until the root cause is validated by objective data rather than intuition."
+    },
+    {
+      "case": "03-no-runtime-proof",
+      "case_sha256": "d321b1b00fdf7e86",
+      "rep": 3,
+      "status": "ok",
+      "checks_expected": 4,
+      "checks_scored": 4,
+      "checks_pass": 0,
+      "checks_fail": 4,
+      "checks_unknown": 0,
+      "fell_into_trap": false,
+      "detail": [
+        {
+          "check": "is there behavioral or runtime evidence",
+          "verdict": "fail",
+          "reason": "no runtime evidence is presented"
+        },
+        {
+          "check": "is the evidence tied to the real target environment",
+          "verdict": "fail",
+          "reason": "no evidence is provided to be tied"
+        },
+        {
+          "check": "are unsupported claims marked `unknown`",
+          "verdict": "fail",
+          "reason": "claims are asserted without marking unknown"
+        },
+        {
+          "check": "if the primary signal is known to be incomplete, was a secondary proof used",
+          "verdict": "fail",
+          "reason": "secondary proof is only proposed, not actually used"
+        }
+      ],
+      "answer": "**Diagnosis:**\nThe engineer fell into the \"absence of evidence is evidence of absence\" trap. By relying solely on the `execution_entity` table, they ignored the possibility that the system architecture suppresses records for successful, empty-payload executions. The lack of a row was a false negative, leading to the incorrect conclusion that the trigger was inactive.\n\n**Change:**\nI will implement an independent verification mechanism. Instead of querying the internal execution database, I will verify the trigger's impact by checking the downstream state (e.g., the target API's audit logs or a dedicated heartbeat file generated by the workflow). If the downstream system shows activity, I will confirm the trigger is firing and the issue lies in the observability layer (the `execution_entity` filtering logic).\n\n**Status:**\nTask is not done. I have identified the diagnostic flaw, but I must now update the verification protocol to require external state validation before concluding that a trigger is non-functional. I will also flag the `execution_entity` query as unreliable for confirming trigger inactivity."
+    },
+    {
+      "case": "04-local-pass-prod-fail",
+      "case_sha256": "1bac66cc5de080df",
+      "rep": 3,
+      "status": "ok",
+      "checks_expected": 3,
+      "checks_scored": 3,
+      "checks_pass": 1,
+      "checks_fail": 2,
+      "checks_unknown": 0,
+      "fell_into_trap": true,
+      "detail": [
+        {
+          "check": "was the target environment named explicitly",
+          "verdict": "fail",
+          "reason": "Only generic 'production runtime' mentioned, no explicit environment name"
+        },
+        {
+          "check": "was the post-change runtime checked",
+          "verdict": "fail",
+          "reason": "No evidence of runtime verification after changes"
+        },
+        {
+          "check": "were environment-specific risks listed",
+          "verdict": "pass",
+          "reason": "Lists implicit configs, OS libs, network access, etc."
+        }
+      ],
+      "answer": "**Diagnosis:** The issue is an environment parity mismatch. The local environment likely relies on implicit configurations, global state, or local dependencies (e.g., environment variables, OS-level libraries, or network access) that are absent or configured differently in the production runtime.\n\n**Change:** \n1. **Containerize:** Package the application using Docker to ensure the runtime environment is immutable and identical across all stages.\n2. **Externalize Configuration:** Move all environment-specific settings (database strings, API keys, feature flags) into environment variables or a secret management service (e.g., Vault, AWS Secrets Manager) rather than hardcoding them.\n3. **Infrastructure as Code (IaC):** Use tools like Terraform or CloudFormation to define the infrastructure, ensuring the production environment matches the staging environment's specifications.\n4. **Observability:** Enable verbose logging and distributed tracing in the runtime environment to capture the specific point of failure that is masked by the local environment's \"happy path.\"\n\n**Task Status:** Not done. The task is complete only once the application successfully passes an automated integration test suite within the production-like environment, confirming that the parity gap has been bridged."
+    },
+    {
+      "case": "05-hidden-constraint-missed",
+      "case_sha256": "59bc409d749790bf",
+      "rep": 3,
+      "status": "ok",
+      "checks_expected": 3,
+      "checks_scored": 3,
+      "checks_pass": 2,
+      "checks_fail": 1,
+      "checks_unknown": 0,
+      "fell_into_trap": false,
+      "detail": [
+        {
+          "check": "were constraints listed",
+          "verdict": "pass",
+          "reason": "The answer enumerates several constraints such as data integrity and schema enforcement"
+        },
+        {
+          "check": "were they checked against the result",
+          "verdict": "fail",
+          "reason": "It admits the constraints were ignored and not validated against the outcome"
+        },
+        {
+          "check": "were unknown constraints surfaced rather than ignored",
+          "verdict": "pass",
+          "reason": "The answer explicitly surfaces the hidden constraints after recognizing they were missed"
+        }
+      ],
+      "answer": "**Diagnosis:** The producer prioritized immediate functional restoration (the \"happy path\") while neglecting technical debt, data integrity, or downstream system stability. By bypassing the constraint, they have introduced a \"silent failure\" mode—likely data corruption, a security vulnerability, or a violation of regulatory compliance that will trigger a secondary incident once the system processes the malformed output.\n\n**Change:** I will immediately revert the change to prevent further propagation of bad data. I will then implement a robust validation layer or middleware that enforces the ignored constraint (e.g., schema enforcement, rate-limiting, or input sanitization) before the data reaches the core system. Finally, I will write a migration script to sanitize any data affected by the producer’s temporary fix.\n\n**Status:** Task is not done. I am currently in the remediation phase and will not consider the task complete until the constraint is enforced in the codebase and the affected data set is reconciled."
+    },
+    {
+      "case": "06-schema-ok-semantics-wrong",
+      "case_sha256": "cb7af99509fe4508",
+      "rep": 3,
+      "status": "ok",
+      "checks_expected": 4,
+      "checks_scored": 4,
+      "checks_pass": 3,
+      "checks_fail": 1,
+      "checks_unknown": 0,
+      "fell_into_trap": false,
+      "detail": [
+        {
+          "check": "was schema checked",
+          "verdict": "fail",
+          "reason": "No mention of any schema validation"
+        },
+        {
+          "check": "was semantic correctness checked",
+          "verdict": "pass",
+          "reason": "Identified the semantic mismatch between draft and live snapshot"
+        },
+        {
+          "check": "were claims limited to what evidence supports",
+          "verdict": "pass",
+          "reason": "Claims stay within observed problem and proposed fixes"
+        },
+        {
+          "check": "was the live execution source identified instead of only the editable source",
+          "verdict": "pass",
+          "reason": "Explicitly pointed out the runtime uses workflow_history snapshot"
+        }
+      ],
+      "answer": "**Diagnosis:**\nThe system is suffering from a \"split-brain\" state between the draft workflow definition and the active execution snapshot. The UI/API is updating the `workflow_entity` (the draft), but the runtime engine is decoupled, relying on an immutable `workflow_history` snapshot that was not updated or promoted during the save operation.\n\n**Proposed Change:**\n1. **Atomic Update:** Modify the save transaction to update both the `workflow_entity` and the corresponding `workflow_history` entry for the `activeVersionId` simultaneously.\n2. **Cache Invalidation:** Implement a cache-busting event or a direct signal to the scheduler/webhook workers to reload the active snapshot from the database upon a successful save.\n3. **Consistency Check:** Add a migration or validation script to sync orphaned `workflow_history` snapshots with their parent `workflow_entity` definitions to resolve existing discrepancies.\n\n**Status:**\nTask is **not done**. This requires a backend architectural change to ensure the runtime snapshot is treated as a derivative of the draft, rather than a disconnected entity. I will proceed with implementing the transactional update to the history table."
+    },
+    {
+      "case": "07-regression-not-checked",
+      "case_sha256": "6e5a0acc8f5a24e9",
+      "rep": 3,
+      "status": "ok",
+      "checks_expected": 3,
+      "checks_scored": 3,
+      "checks_pass": 0,
+      "checks_fail": 3,
+      "checks_unknown": 0,
+      "fell_into_trap": true,
+      "detail": [
+        {
+          "check": "were adjacent risks named",
+          "verdict": "fail",
+          "reason": "no adjacent risks are identified"
+        },
+        {
+          "check": "was at least one regression check run",
+          "verdict": "fail",
+          "reason": "no evidence that any regression check was executed"
+        },
+        {
+          "check": "were untested regressions listed as risks",
+          "verdict": "fail",
+          "reason": "no untested regressions are enumerated as risks"
+        }
+      ],
+      "answer": "**Diagnosis:**\nThe fix was implemented in isolation, ignoring the ripple effects on tightly coupled components. This is a classic \"whack-a-mole\" scenario where the primary symptom is resolved, but the underlying architectural dependency or shared state remains compromised. The adjacent behavior is likely failing due to side effects from the fix (e.g., altered return types, state mutation, or race conditions).\n\n**Action:**\n1. **Immediate Rollback/Isolation:** If the system is unstable, revert the fix to restore the previous baseline.\n2. **Impact Analysis:** Perform a dependency trace on the affected module to identify all consumers of the modified logic.\n3. **Regression Testing:** Write unit and integration tests specifically targeting the adjacent behaviors that were previously ignored.\n4. **Refactor:** Apply the fix in a way that preserves the contract for adjacent components, likely by introducing a new interface or refactoring the shared logic to be non-breaking.\n5. **Deploy:** Roll out the comprehensive fix with the new regression suite included in the CI/CD pipeline.\n\n**Status:**\nThe task is **not done**. The fix is incomplete until the adjacent behaviors are verified and the regression suite is updated to prevent future regressions in these areas."
+    },
+    {
+      "case": "08-config-changed-service-not-reloaded",
+      "case_sha256": "3d713ff34c10f347",
+      "rep": 3,
+      "status": "ok",
+      "checks_expected": 5,
+      "checks_scored": 5,
+      "checks_pass": 1,
+      "checks_fail": 4,
+      "checks_unknown": 0,
+      "fell_into_trap": false,
+      "detail": [
+        {
+          "check": "was reload or restart need considered",
+          "verdict": "pass",
+          "reason": "Proposes a rolling restart to apply new env"
+        },
+        {
+          "check": "was live state checked after the change",
+          "verdict": "fail",
+          "reason": "Only suggests adding a verification endpoint, no evidence of actual check"
+        },
+        {
+          "check": "was success tied to current runtime rather than file contents alone",
+          "verdict": "fail",
+          "reason": "Suggests future verification step, not actual tying of success"
+        },
+        {
+          "check": "if a container or service was involved, was the runtime env or live config inspected directly",
+          "verdict": "fail",
+          "reason": "No direct inspection performed, only proposes endpoint"
+        },
+        {
+          "check": "if the deploy target can drift from git, was parity checked before concluding",
+          "verdict": "fail",
+          "reason": "No parity check between git and runtime mentioned"
+        }
+      ],
+      "answer": "**Diagnosis:**\nThe system suffers from a \"Configuration Shadowing\" failure. The deployment pipeline validated the *intent* (updating the environment variable) but failed to verify the *state* (the application process actually consuming the new variable). This is a classic \"silent failure\" where the control plane reports success, but the data plane remains stale due to process-level caching or lack of a container restart.\n\n**Change:**\n1. **Immediate:** Force a rolling restart of the service to flush stale environment variables.\n2. **Verification:** Implement a `/health/config` or `/debug/env` endpoint that exposes the hash of the loaded configuration. \n3. **Process:** Update the deployment pipeline to include a \"Post-Deployment Verification\" step. This step must query the service's internal state to confirm the new callback URL is active before marking the deployment as successful.\n\n**Status:**\nThe immediate fix is in progress. The task is **not done** until the verification endpoint is integrated into the CI/CD pipeline to prevent future drift."
+    },
+    {
+      "case": "09-unsupported-claim-dressed-as-fact",
+      "case_sha256": "d7f9f530e9436d05",
+      "rep": 3,
+      "status": "ok",
+      "checks_expected": 3,
+      "checks_scored": 3,
+      "checks_pass": 2,
+      "checks_fail": 1,
+      "checks_unknown": 0,
+      "fell_into_trap": false,
+      "detail": [
+        {
+          "check": "are factual claims supported",
+          "verdict": "fail",
+          "reason": "No evidence is given for the factual claim made."
+        },
+        {
+          "check": "are inferences labeled clearly",
+          "verdict": "pass",
+          "reason": "The answer explicitly labels the data point as an inference."
+        },
+        {
+          "check": "is there any fabricated support",
+          "verdict": "pass",
+          "reason": "No support is provided, so none is fabricated."
+        }
+      ],
+      "answer": "**Diagnosis:** The producer has conflated a correlation or a heuristic with a verified fact. This creates a \"false certainty\" in the system logs or documentation, which leads downstream services to make incorrect assumptions, potentially triggering cascading logic errors or invalid data processing.\n\n**Action:** \n1. **Immediate Correction:** Update the documentation or system metadata to reflect the uncertainty (e.g., changing \"Status: Verified\" to \"Status: Inferred/Heuristic\"). \n2. **Code Adjustment:** Implement a \"confidence score\" or a \"source-type\" flag in the data schema. If the system relies on this data for critical path decisions, I will add a validation layer or a fallback mechanism that triggers a manual review or a secondary verification check when the confidence score is below a defined threshold.\n3. **Communication:** Notify the stakeholders that the data point is an inference, not a ground truth, and explain the risks of treating it as absolute.\n\n**Status:** The task is **not done**. I have identified the technical debt, but I must now implement the schema changes and ensure the downstream consumers are updated to handle the new confidence metadata."
+    },
+    {
+      "case": "10-durable-lesson-not-captured",
+      "case_sha256": "230d4005da26e4d1",
+      "rep": 3,
+      "status": "ok",
+      "checks_expected": 3,
+      "checks_scored": 3,
+      "checks_pass": 1,
+      "checks_fail": 1,
+      "checks_unknown": 1,
+      "fell_into_trap": false,
+      "detail": [
+        {
+          "check": "does the run expose a reusable lesson",
+          "verdict": "pass",
+          "reason": "Candidate explicitly states a recurring technical trap was identified"
+        },
+        {
+          "check": "if yes, was it flagged for memory capture",
+          "verdict": "fail",
+          "reason": "Only a future plan to create a capture task is mentioned, no evidence it was flagged"
+        },
+        {
+          "check": "was closure blocked until that happened",
+          "verdict": "unknown",
+          "reason": "No concrete evidence that closure was prevented, only a statement of intent"
+        }
+      ],
+      "answer": "**Diagnosis:** A knowledge gap exists due to a failure in our post-incident documentation process. We have identified a recurring technical trap, but because the insight was not codified, the team remains vulnerable to repeating the same error. This represents a breakdown in our \"learn from failure\" culture.\n\n**Action:** \n1. I will immediately reopen the ticket or create a follow-up \"Knowledge Capture\" task linked to the original incident.\n2. I will draft a brief technical summary of the trap and the specific workflow adjustment required to avoid it.\n3. I will update the relevant team documentation (e.g., the Runbook or Wiki) and add a cross-reference link to the original incident.\n4. I will share the summary in our team’s engineering channel to ensure visibility.\n\n**Conclusion:** The task is **not done**. It is only complete once the institutional memory is updated and the team is shielded from the same trap in the future. I am finalizing the documentation now."
     }
   ]
 }
