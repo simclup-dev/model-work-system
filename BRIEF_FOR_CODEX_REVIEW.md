@@ -4,7 +4,7 @@
 producer loop is finished, a candidate result exists, and you are seeing it with a clean
 head. You did not build any of it.
 
-**Repository:** `/mnt/c/codex/model-work-system/` (git). Read what you need.
+**Repository:** this repository (git). Read what you need.
 
 ---
 
