@@ -49,8 +49,12 @@ regex) and four in the data (a drifted figure in the baseline, a manifest name w
 file, a case edited after the baseline run, a case stripped of its checks). All nine
 were caught. A suite that has never failed has not been shown to work.
 
-Worth reading first: [`examples/bug-report-word-highlight-sync.md`](examples/bug-report-word-highlight-sync.md)
-— a defect analysis on a real product, including the part where the report's own
+Worth reading first: [`examples/bug-report-hourly-aggregation-window.md`](examples/bug-report-hourly-aggregation-window.md)
+— a filed defect report in the standard form: a scheduled job that logged
+`executed successfully` every hour for 104 days while writing nothing, with the
+reproduction, the root cause, and the production verification. Then
+[`examples/bug-report-word-highlight-sync.md`](examples/bug-report-word-highlight-sync.md)
+— an *analysis* of a messy report, including the part where the report's own
 acceptance gate fails, and [`checklists/definition-of-done.md`](checklists/definition-of-done.md).
 
 This is a practical operating system for high-volume work with AI models.
