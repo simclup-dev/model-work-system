@@ -1,5 +1,7 @@
 # Model Work System
 
+[![tests](https://github.com/simclup-dev/model-work-system/actions/workflows/tests.yml/badge.svg)](https://github.com/simclup-dev/model-work-system/actions/workflows/tests.yml)
+
 A working method for getting verified results out of AI models, and for knowing when
 you have not. I use it daily to run and check work I direct rather than type: I set the
 objective and the boundaries, the model produces, and nothing is accepted until an
@@ -18,6 +20,34 @@ catches.
 | eval case | test case with an expected result |
 | `failure tag` | defect category |
 | `unknown` verdict | not tested — never counted as a pass |
+
+## Tests
+
+The harness is the thing that produces the number, so it is tested. `python -m pytest`
+runs 82 tests on every push (Python 3.11-3.13, `.github/workflows/tests.yml`); they use
+no network and no API keys, and the CI job is given none, so a test that reaches a paid
+endpoint fails there.
+
+Two kinds:
+
+- **`tests/test_runner.py`** pins the invariants that decide what the reported number
+  means: an `unknown` verdict is never counted as a pass, rows that errored stay in the
+  denominator so a killed run cannot outscore a finished one, a short reply from the
+  judge is rejected instead of silently shrinking the denominator, only a run with every
+  row ok may call itself `COMPLETE`, and a 429/5xx is retried as transport rather than
+  recorded as an answer - except a 429 naming a spent quota, which is a daily cap and is
+  not waited out.
+- **`tests/test_pack_integrity.py`** reads the pack and the published baseline and makes
+  them agree: every manifest name resolves to a file, every case still parses, the case
+  hashes stored in the baseline run still match the case text on disk, and the figures
+  quoted in `evals/BASELINE.md` are recomputed from the raw result file it cites.
+
+The suite was checked against nine deliberately introduced defects - five in the runner
+(dropping errored rows from the denominator, skipping the judge-reply length check,
+retrying a spent quota, counting `unknown` as a pass, matching a section name as a
+regex) and four in the data (a drifted figure in the baseline, a manifest name with no
+file, a case edited after the baseline run, a case stripped of its checks). All nine
+were caught. A suite that has never failed has not been shown to work.
 
 Worth reading first: [`examples/bug-report-word-highlight-sync.md`](examples/bug-report-word-highlight-sync.md)
 — a defect analysis on a real product, including the part where the report's own
